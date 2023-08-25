@@ -1,0 +1,9 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "about": "Acerca de"
+  },
+  "home": {
+    "header": "Warehouse Dashboard"
+  }
+}
