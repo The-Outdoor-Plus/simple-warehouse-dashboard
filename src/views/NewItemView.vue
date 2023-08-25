@@ -19,7 +19,7 @@
       </div>
     </div>
     <div class="w-full mt-6">
-      <Toast />
+      <!-- <Toast />
         <FileUpload name="demo[]" url="./upload.php" @upload="onTemplatedUpload($event)" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
             <template #header="{ chooseCallback, clearCallback, files }">
                 <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
@@ -69,7 +69,8 @@
                     <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
                 </div>
             </template>
-        </FileUpload>
+        </FileUpload> -->
+        <FileUpload mode="basic" name="demo[]" url="./upload.php" accept="image/*" :maxFileSize="100000000" />
     </div>
   </div>
 </template>
