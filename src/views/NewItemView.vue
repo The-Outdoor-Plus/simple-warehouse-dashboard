@@ -19,8 +19,8 @@
       </div>
     </div>
     <div class="w-full mt-6">
-      <!-- <Toast />
-        <FileUpload name="demo[]" url="./upload.php" @upload="onTemplatedUpload($event)" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
+      <Toast />
+        <FileUpload name="demo[]" url="./upload.php" @upload="onTemplatedUpload()" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
             <template #header="{ chooseCallback, clearCallback, files }">
                 <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
                     <div class="flex gap-2">
@@ -38,7 +38,7 @@
                     <div class="flex flex-wrap p-0 sm:p-5 gap-5">
                         <div v-for="(file, index) of files" :key="file.name + file.type + file.size" class="card m-0 px-6 flex flex-column border-1 surface-border align-items-center gap-3">
                             <div>
-                                <img role="presentation" :alt="file.name" :src="file.objectURL" width="100" height="50" class="shadow-2" />
+                                <img role="presentation" :alt="file.name" :src="(file as any).objectURL" width="100" height="50" class="shadow-2" />
                             </div>
                             <span class="font-semibold">{{ file.name }}</span>
                             <div>{{ formatSize(file.size) }}</div>
@@ -53,7 +53,7 @@
                     <div class="flex flex-wrap p-0 sm:p-5 gap-5">
                         <div v-for="(file, index) of uploadedFiles" :key="file.name + file.type + file.size" class="card m-0 px-6 flex flex-column border-1 surface-border align-items-center gap-3">
                             <div>
-                                <img role="presentation" :alt="file.name" :src="file.objectURL" width="100" height="50" class="shadow-2" />
+                                <img role="presentation" :alt="file.name" :src="(file as any).objectURL" width="100" height="50" class="shadow-2" />
                             </div>
                             <span class="font-semibold">{{ file.name }}</span>
                             <div>{{ formatSize(file.size) }}</div>
@@ -69,8 +69,8 @@
                     <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
                 </div>
             </template>
-        </FileUpload> -->
-        <FileUpload mode="basic" name="demo[]" url="./upload.php" accept="image/*" :maxFileSize="100000000" />
+        </FileUpload>
+        <!-- <FileUpload mode="basic" name="demo[]" url="./upload.php" accept="image/*" :maxFileSize="100000000" /> -->
     </div>
   </div>
 </template>
