@@ -5,7 +5,7 @@
 
       </template>
       <template #end>
-        <Button label="New" icon="pi pi-plus" severity="success" class="mr-2 bg-green-700 border-green-700 px-10 py-0" @click="$router.push('/new')" />
+        <Button label="New" icon="pi pi-plus" severity="success" class="mr-2 bg-green-700 border-green-700 px-10 py-0" @click="$router.push(`/new?${queryParams}`)" />
       </template>
     </Toolbar>
     <div class="w-full flex">
@@ -139,6 +139,12 @@ import FileUpload from 'primevue/fileupload';
 import { useQuery } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 
+const queryParams = computed(() => {
+  return new URLSearchParams({
+    groupId: currentBoard.value?.key || "",
+  });
+});
+
 const getKeyFromString = (data: any, key: string) => {
   if (data) {
     const keyValue = JSON.parse(data);
@@ -191,7 +197,7 @@ const toggle = (event: any) => {
 const dt = ref();
 
 const { result: boardsGroups } = useQuery(gql`
-  query {
+  query getBoardGroups {
     boards(ids: 2940773675) {
       groups {
         id
