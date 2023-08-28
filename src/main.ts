@@ -11,12 +11,15 @@ import i18n from './i18n';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import Tailwind from 'primevue/passthrough/tailwind';
-import { DefaultApolloClient } from '@vue/apollo-composable';
-import { mondayApolloClient } from './graphql';
+import { ApolloClients } from '@vue/apollo-composable';
+import { mondayApolloClient, mondayFileApolloClient } from './graphql';
 
 const app = createApp(App);
 
-app.provide(DefaultApolloClient, mondayApolloClient);
+app.provide(ApolloClients, {
+  default: mondayApolloClient,
+  mondayFileClient: mondayFileApolloClient,
+});
 
 app.use(createPinia());
 app.use(PrimeVue, { unstyled: true, pt: Tailwind });

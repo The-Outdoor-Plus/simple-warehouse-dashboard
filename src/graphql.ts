@@ -1,24 +1,39 @@
 import { ApolloClient, createHttpLink, InMemoryCache } from "@apollo/client/core";
 
-function getHeaders(): { Authorization?: string; "Content-Type"?: string, "API-Version"?: string } {
-  return {
-    'Content-Type': 'application/json',
-    Authorization : import.meta.env.VITE_MONDAY_TOKEN,
-    'API-Version' : '2023-04'
-   }
-}
-
-const httpLink = createHttpLink({
+const defaultHttpLink = createHttpLink({
   uri: import.meta.env.VITE_MONDAY_API_URL || 'https://api.monday.com/v2',
   fetch: (uri: RequestInfo, options: RequestInit) => {
-    options.headers = getHeaders();
+    options.headers = {
+      'Content-Type': 'application/json',
+      Authorization : import.meta.env.VITE_MONDAY_TOKEN,
+      'API-Version' : '2023-04'
+    };
     return fetch(uri, options);
   },
 });
 
-const cache = new InMemoryCache();
+const defaultCache = new InMemoryCache();
 
 export const mondayApolloClient = new ApolloClient({
-  link: httpLink,
-  cache,
-})
+  link: defaultHttpLink,
+  cache: defaultCache,
+});
+
+const fileClientHttpLink = createHttpLink({
+  uri: `${import.meta.env.VITE_MONDAY_API_URL}/file` || 'https://api.monday.com/v2/file',
+  fetch: (uri: RequestInfo, options: RequestInit) => {
+    options.headers = {
+      'Content-Type': 'multipart/form-data',
+      Authorization : import.meta.env.VITE_MONDAY_TOKEN,
+      'API-Version' : '2023-04'
+    };
+    return fetch(uri, options);
+  },
+});
+
+const fileClientCache = new InMemoryCache();
+
+export const mondayFileApolloClient = new ApolloClient({
+  link: fileClientHttpLink,
+  cache: fileClientCache,
+});
