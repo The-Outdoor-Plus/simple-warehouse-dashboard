@@ -84,8 +84,6 @@ import FileUpload from 'primevue/fileupload';
 import { useMutation } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import { useRoute } from 'vue-router';
-import { create } from 'domain';
-import { defaultDataIdFromObject } from '@apollo/client';
 
 const route = useRoute();
 
