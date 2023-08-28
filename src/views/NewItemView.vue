@@ -2,7 +2,7 @@
   <div class="px-6 mb-32">
     <div class="w-full">
       <label for="ponumber" class="font-bold block mb-2"> PO Number: </label>
-      <InputNumber v-model="poNumber" inputId="ponumber" input-class="w-full" :useGrouping="false" class="w-full"/>
+      <InputText v-model="poNumber" inputId="ponumber" input-class="w-full" :useGrouping="false" class="w-full"/>
     </div>
     <div class="w-full mt-6">
       <label for="type" class="font-bold block mb-2"> Type: </label>
@@ -74,13 +74,13 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useToast } from "primevue/usetoast";
-import InputNumber from 'primevue/inputnumber';
 import Dropdown from 'primevue/dropdown';
 import Calendar from 'primevue/calendar';
 import Toast from 'primevue/toast';
 import Badge from 'primevue/badge';
 import Button from 'primevue/button';
 import FileUpload from 'primevue/fileupload';
+import InputText from 'primevue/inputtext';
 import { useMutation } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import { useRoute } from 'vue-router';
@@ -115,8 +115,8 @@ onMounted(() => {
 });
 
 const columnValues = computed(() => {
-  const rdyDate = `${readyDate.value.getFullYear()}-${("0" + (readyDate.value.getMonth() + 1)).slice(-2)}-${readyDate.value.getDate()}`;
-  const shppngDate = shippingDate.value ? `${shippingDate.value.getFullYear()}-${("0" + (shippingDate.value.getMonth() + 1)).slice(-2)}-${shippingDate.value.getDate()}` : '';
+  const rdyDate = `${readyDate.value.getFullYear()}-${("0" + (readyDate.value.getMonth() + 1)).slice(-2)}-${("0" + (readyDate.value.getDate())).slice(-2)}`;
+  const shppngDate = shippingDate.value ? `${shippingDate.value.getFullYear()}-${("0" + (shippingDate.value.getMonth() + 1)).slice(-2)}-${("0" + (shippingDate.value.getDate())).slice(-2)}` : '';
   const columns = {
     "status6": {
       "label": selectedTypeLabel.value?.label || '',
@@ -170,16 +170,13 @@ onCreateItemDone((result) => {
 const uploadFile = async ()  => {
   files.value.forEach(async (file) => {
     const data = new FormData();
-    data.append('query', 'mutation add_file($file: File!) {add_file_to_column (item_id: $itemid, column_id:"files" file: $file) {id}}');
-    data.append('variables', JSON.stringify({ "itemid": itemId.value }));
+    data.append('query', `mutation add_file($file: File!) {add_file_to_column (item_id: ${itemId.value}, column_id:"files" file: $file) {id}}`);
     data.append('map', JSON.stringify({ "image": "variables.file" }));
     data.append('image', file);
     const result = await fetch(`${import.meta.env.VITE_MONDAY_API_URL}/file` || 'https://api.monday.com/v2/file', {
       method: 'POST',
       headers: {
-        'Content-Type': 'multipart/form-data',
         Authorization : import.meta.env.VITE_MONDAY_TOKEN,
-        'API-Version' : '2023-04'
       },
       body: data,
     });
