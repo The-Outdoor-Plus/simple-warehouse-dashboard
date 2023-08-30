@@ -6,7 +6,7 @@ const defaultHttpLink = createHttpLink({
     options.headers = {
       'Content-Type': 'application/json',
       Authorization : import.meta.env.VITE_MONDAY_TOKEN,
-      'API-Version' : '2023-04'
+      'API-Version' : '2023-04',
     };
     return fetch(uri, options);
   },

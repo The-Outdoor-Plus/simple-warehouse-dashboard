@@ -84,6 +84,7 @@ import InputText from 'primevue/inputtext';
 import { useMutation } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import { useRoute } from 'vue-router';
+import axios from 'axios';
 
 const route = useRoute();
 
@@ -168,26 +169,29 @@ onCreateItemDone((result) => {
 // }));
 
 const uploadFile = async ()  => {
+  const promises: any = [];
   files.value.forEach(async (file) => {
     const data = new FormData();
-    data.append('query', `mutation add_file($file: File!) {add_file_to_column (item_id: ${itemId.value}, column_id:"files" file: $file) {id}}`);
+    // data.append('query', `mutation add_file($file: File!) {add_file_to_column (item_id: ${itemId.value}, column_id:"files" file: $file) {id}}`);
     data.append('map', JSON.stringify({ "image": "variables.file" }));
-    data.append('image', file);
-    const result = await fetch(`${import.meta.env.VITE_MONDAY_API_URL}/file` || 'https://api.monday.com/v2/file', {
-      method: 'POST',
-      headers: {
-        Authorization : import.meta.env.VITE_MONDAY_TOKEN,
-      },
-      body: data,
+    data.append('variables', JSON.stringify({ "itemId": +itemId.value }));
+    data.append('file', file);
+    const result = axios({
+      method: 'post',
+      url: `${import.meta.env.VITE_API_URL}/api/upload-file` || 'https://top-warehouse-api-95rb-dev.fl0.io/api/upload-file',
+      // url: 'http://localhost:3000/api/upload-file',
+      data,
+      headers: { "Content-Type": "multipart/form-data" },
     });
-
-    if (result.status !== 200) {
-      throw new Error('Error uploading file');
-    }
-
-    const response = await result.json();
-    console.log(response);
+    promises.push(result);
   });
+
+  try {
+    const results = await Promise.allSettled(promises);
+    console.log(results);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 const uploadFiles = async () => {
