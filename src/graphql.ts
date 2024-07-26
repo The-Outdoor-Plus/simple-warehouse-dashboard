@@ -6,7 +6,7 @@ const defaultHttpLink = createHttpLink({
     options.headers = {
       'Content-Type': 'application/json',
       Authorization : import.meta.env.VITE_MONDAY_TOKEN,
-      'API-Version' : '2023-04',
+      'API-Version' : '2024-07',
     };
     return fetch(uri, options);
   },
@@ -17,6 +17,14 @@ const defaultCache = new InMemoryCache();
 export const mondayApolloClient = new ApolloClient({
   link: defaultHttpLink,
   cache: defaultCache,
+  defaultOptions: {
+    query: {
+      fetchPolicy: 'no-cache',
+    },
+    watchQuery: {
+      fetchPolicy: 'no-cache',
+    }
+  }
 });
 
 const fileClientHttpLink = createHttpLink({
@@ -25,7 +33,7 @@ const fileClientHttpLink = createHttpLink({
     options.headers = {
       'Content-Type': 'multipart/form-data',
       Authorization : import.meta.env.VITE_MONDAY_TOKEN,
-      'API-Version' : '2023-04'
+      'API-Version' : '2024-07'
     };
     return fetch(uri, options);
   },
