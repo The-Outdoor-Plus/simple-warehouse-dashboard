@@ -71,8 +71,8 @@
       <Column header="Files" style="min-width: 10rem;">
           <template #body="slotProps">
             <div class="flex items-center">
-              <img v-if="slotProps.data?.files?.[0]" :src="slotProps.data.files[0].url_thumbnail" alt="thumb-1" title="thumb-1" class="shadow-2 border-round hover:cursor-pointer hover:shadow-xl transition-all w-8 " @click="selectCurrentItem(slotProps.data)" />
-              <img v-if="slotProps.data?.files?.[1]" :src="slotProps.data.files[1].url_thumbnail" alt="thumb-2" title="thumb-2" class="shadow-2 border-round hover:cursor-pointer hover:shadow-xl transition-all w-8 ml-4" @click="selectCurrentItem(slotProps.data)" />
+              <Image v-if="slotProps.data?.files?.[0]" :src="slotProps.data.files[0].public_url" loading="lazy" alt="thumb-1" title="thumb-1" class="shadow-2 border-round hover:cursor-pointer hover:shadow-xl transition-all w-8 " @click="selectCurrentItem(slotProps.data)" />
+              <Image v-if="slotProps.data?.files?.[1]" :src="slotProps.data.files[1].public_url" loading="lazy" alt="thumb-2" title="thumb-2" class="shadow-2 border-round hover:cursor-pointer hover:shadow-xl transition-all w-8 ml-4" @click="selectCurrentItem(slotProps.data)" />
               <template v-if="slotProps.data?.files?.length > 2">
                 <Tag class="bg-gray-500 rounded-full h-5 flex justify-center items-center ml-2 -mr-4 text-[0.85rem]">
                   + {{ slotProps.data?.files?.length - 2 }}
@@ -132,10 +132,10 @@
       <div class="w-full"> -->
         <Galleria v-if="currentItem && currentItem.files && currentItem.files.length" v-model:visible="showImagesDialog" :value="currentItem?.files || []" :responsiveOptions="galleryResponsiveOptions" :circular="true" class="px-6" containerClass="max-w-[75%] md:max-w-[89%] lg:max-w-[50%]" containerStyle="max-height: 98vh;" :showItemNavigators="true" :fullScreen="true">
           <template #item="slotProps">
-            <img :src="slotProps.item.url" alt="product-img" title="product-img" style="display: block;" class="lg:max-h-[72vh] mb-10" />
+            <img :src="slotProps.item.public_url" alt="product-img" title="product-img" style="display: block;" class="lg:max-h-[72vh] mb-10" />
           </template>
           <template #thumbnail="slotProps">
-            <img :src="slotProps.item.url" alt="product-thumb" title="product-thumb" style="display: block; max-height: 100px;" class="px-6" />
+            <img :src="slotProps.item.public_url" alt="product-thumb" title="product-thumb" style="display: block; max-height: 100px;" class="px-6" />
           </template>
         </Galleria>
       <!-- </div>
@@ -149,6 +149,7 @@ import Toolbar from 'primevue/toolbar';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import Image from 'primevue/image';
 import Dialog from 'primevue/dialog';
 import Tag from 'primevue/tag';
 import Menu from 'primevue/menu';
@@ -298,6 +299,7 @@ const { result: groupItems, variables: groupItemVariables, loading: itemsLoading
             assets {
               url
               url_thumbnail
+              public_url
             }
             column_values {
               column {
@@ -361,6 +363,7 @@ const { result: searchGroupItems, variables: searchGroupItemVariables, loading: 
             assets {
               url
               url_thumbnail
+              public_url
             }
             column_values {
               column {
@@ -419,6 +422,7 @@ const searchItem = async () => {
               assets {
                 url
                 url_thumbnail
+                public_url
               }
               column_values {
                 column {
@@ -478,6 +482,7 @@ const { load: paginationLoad, refetch: paginationRefetch, result: newGroupItems,
           assets {
             url
             url_thumbnail
+            public_url
           }
           column_values {
             column {
@@ -521,6 +526,7 @@ const loadMore = async () => {
           assets {
             url
             url_thumbnail
+            public_url
           }
           column_values {
             column {
@@ -625,6 +631,7 @@ const initialLoad = async() => {
               assets {
                 url
                 url_thumbnail
+                public_url
               }
               column_values {
                 column {
