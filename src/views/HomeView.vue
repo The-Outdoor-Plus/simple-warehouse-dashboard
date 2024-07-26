@@ -1,13 +1,13 @@
 <template>
   <div class="px-6 mb-32">
-    <Toolbar class="bg-white-gray-100 border-gray-300 dark:bg-gray-100 dark:border-gray-300">
+    <!-- <Toolbar class="bg-white-gray-100 border-gray-300 dark:bg-gray-100 dark:border-gray-300">
       <template #start>
 
       </template>
       <template #end>
         <Button label="New" icon="pi pi-plus" severity="success" class="mr-2 bg-green-700 border-green-700 px-10 py-0" @click="$router.push(`/new?${queryParams}`)" />
       </template>
-    </Toolbar>
+    </Toolbar> -->
     <div class="w-full flex">
       <Button 
         type="button"
@@ -23,6 +23,18 @@
       />
       <Menu ref="menu" id="overlay_menu" :model="boardGroups" :popup="true" />
     </div>
+    <div class="w-full flex items-center justify-between mt-10">
+      <Button raised :disabled="!(searchGroupItems?.boards.length > 0)" @click.prevent="showAll" severity="danger">
+        <div class="text-white font-semibold ">Show All</div>
+      </Button>
+      <div class="inline-flex items-center">
+        <i class="pi pi-search" />
+        <InputNumber v-model="searchTerm" placeholder="Search PO Number" :use-grouping="false" class="ml-4"/>
+        <Button raised :disabled="!searchTerm" @click.prevent="searchItem" class="pr-8" color="bg-blue-600">
+         <div class="text-white font-semibold ">Search</div>
+        </Button>       
+      </div>
+    </div>
     <DataTable 
       ref="dt" 
       dataKey="id" 
@@ -31,21 +43,27 @@
       class="mt-6"
       showGridlines 
       scrollable
-      :loading="itemsLoading"
+      scroll-height="600px"
+      :loading="itemsLoading || newItemsLoading"
       :value="items" 
       :rowsPerPageOptions="[10,25]"
     >
       <template #header>
-          <div class="flex flex-wrap gap-2 align-items-center justify-content-between">
-              <h3 class="m-0 text-xl font-semibold">{{ currentBoard?.label }}</h3>
+          <div class="w-full flex flex-wrap gap-2 items-center justify-between">
+            <h3 class="m-0 text-xl font-semibold">{{ currentBoard?.label }}</h3> 
           </div>
       </template>
       <Column field="name" header="PO Number" style="min-width: 9rem" frozen class="font-semibold"></Column>
+      <Column :exportable="false" style="min-width: 6rem">
+        <template #body="slotProps">
+          <Button icon="pi pi-camera" outlined rounded class=""></Button>
+        </template>
+      </Column>
       <Column header="Type" style="min-width: 12rem" class="text-center font-semibold">
         <template #body="slotProps">
-          <Tag v-if="slotProps.data.type.additional_info" :style="{ background: getKeyFromString(slotProps.data.type.additional_info, 'color') }">
+          <Tag v-if="slotProps.data.type?.label" :style="{ background: slotProps.data.type.label_style.color }">
             <div class="text-center text-[0.95rem] px-4">
-              {{ getKeyFromString(slotProps.data.type.additional_info, 'label') }}
+              {{ slotProps.data.type?.label }}
             </div>
           </Tag>
         </template>
@@ -64,44 +82,44 @@
               
           </template>
       </Column>
-      <Column header="Status" style="min-width: 12rem" class="text-center font-semibold">
+      <Column header="Status" style="min-width: 8rem" class="text-center font-semibold">
         <template #body="slotProps">
-          <Tag v-if="slotProps.data.status.additional_info" :style="{ background: getKeyFromString(slotProps.data.status.additional_info, 'color') }">
+          <Tag v-if="slotProps.data.status?.label" :style="{ background: slotProps.data.status.label_style.color }">
             <div class="text-center text-[0.95rem] px-4">
-              {{ getKeyFromString(slotProps.data.status.additional_info, 'label') }}
+              {{ slotProps.data.status?.label }}
             </div>
           </Tag>
         </template>
       </Column>
-      <Column header="CSR" style="min-width: 12rem" class="text-center font-semibold">
+      <Column header="CSR" style="min-width: 8rem" class="text-center font-semibold">
         <template #body="slotProps">
-          <Tag v-if="slotProps.data.csr.additional_info" :style="{ background: getKeyFromString(slotProps.data.csr.additional_info, 'color') }">
+          <Tag v-if="slotProps.data.csr?.label" :style="{ background: slotProps.data.csr.label_style.color }">
             <div class="text-center text-[0.95rem] px-4">
-              {{ getKeyFromString(slotProps.data.csr.additional_info, 'label') }}
+              {{ slotProps.data.csr?.label }}
             </div>
           </Tag>
         </template>
       </Column>
-      <Column header="Ready Date" style="min-width:12rem">
+      <Column header="Ready Date" style="min-width:8rem">
           <template #body="slotProps">
-            {{ parseDate(getKeyFromString(slotProps.data.readyDate.value, 'date')) }}
+            {{ parseDate(slotProps.data.readyDate.date) }}
           </template>
       </Column>
-      <Column header="Shipping Date" style="min-width:12rem">
+      <Column header="Shipping Date" style="min-width:8rem">
           <template #body="slotProps">
-            {{ parseDate(getKeyFromString(slotProps.data.shippingDate.value, 'date')) }}
+            {{ parseDate(slotProps.data.shippingDate.date) }}
           </template>
       </Column>
+      
     </DataTable>
+
+
     <div class="w-full flex justify-center items-center mt-4">
-      <Button text raised :disabled="page <= 1" @click="page = (page > 1) ? page - 1 : page">
-        <i class="pi pi-angle-double-left text-blue-600 mr-2"></i>
-        <div class="text-blue-600 font-semibold">Prev</div>
-      </Button>
-      <div class="font-bold mx-6">Page: {{ page }}</div>
-      <Button text raised :disabled="items.length < 10" @click="page = page + 1">
-        <div class="text-blue-600 font-semibold">Next</div>
-        <i class="pi pi-angle-double-right text-blue-600 ml-2"></i>
+      <ProgressSpinner v-show="itemsLoading || newItemsLoading"></ProgressSpinner>
+    </div>
+    <div class="w-full flex justify-center items-center mt-4">
+      <Button text raised :disabled="!hasCursor" @click="loadMore()">
+        <div class="text-blue-600 font-semibold">Load More (Cargar mas)</div>
       </Button>
     </div>
     <!-- <Dialog 
@@ -126,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import Toolbar from 'primevue/toolbar';
 import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
@@ -136,14 +154,21 @@ import Tag from 'primevue/tag';
 import Menu from 'primevue/menu';
 import Galleria from 'primevue/galleria';
 import FileUpload from 'primevue/fileupload';
-import { useQuery } from '@vue/apollo-composable';
+import { useLazyQuery, useQuery } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
+import ProgressSpinner from 'primevue/progressspinner';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
 
 const queryParams = computed(() => {
   return new URLSearchParams({
     groupId: currentBoard.value?.key || "",
   });
 });
+
+const hasCursor = computed(() => {
+  return currentCursor.value;
+})
 
 const getKeyFromString = (data: any, key: string) => {
   if (data) {
@@ -159,7 +184,12 @@ const selectCurrentItem = (data: any) => {
 }
 
 const page = ref(1);
+const currentCursor = ref(null);
 const showImagesDialog = ref(false);
+const newItemsFetchEnabled = ref(false);
+const searchItemsFetchEnabled = ref(false);
+const initialLoadFetchEnabled = ref(false);
+const searchTerm = ref();
 
 const galleryResponsiveOptions = ref([
     {
@@ -196,7 +226,7 @@ const toggle = (event: any) => {
 
 const dt = ref();
 
-const { result: boardsGroups } = useQuery(gql`
+const { result: boardsGroups, load: loadBoardGroups, refetch: refetchBoardGroups } = useLazyQuery(gql`
   query getBoardGroups {
     boards(ids: 2940773675) {
       groups {
@@ -217,17 +247,19 @@ const boardGroups = computed(() => {
   })) || [];
 });
 
+const itemsMapCB = (item: any) => ({
+  id: item.id,
+  name: item.name,
+  files: item.assets,
+  type: item.column_values.find((col: any) => col.column.title === 'Type'),
+  status: item.column_values.find((col: any) => col.column.title === 'Status'),
+  csr: item.column_values.find((col: any) => col.column.title === 'CSR'),
+  readyDate: item.column_values.find((col: any) => col.column.title === 'Ready Date'),
+  shippingDate: item.column_values.find((col: any) => col.column.title === 'Shipping Date'),
+})
+
 const items = computed(() => {
-  return groupItems.value?.boards?.[0]?.groups?.[0]?.items.map((item: any) => ({
-    id: item.id,
-    name: item.name,
-    files: item.assets,
-    type: item.column_values.find((col: any) => col.title === 'Type'),
-    status: item.column_values.find((col: any) => col.title === 'Status'),
-    csr: item.column_values.find((col: any) => col.title === 'CSR'),
-    readyDate: item.column_values.find((col: any) => col.title === 'Ready Date'),
-    shippingDate: item.column_values.find((col: any) => col.title === 'Shipping Date'),
-  })) || [];
+  return [...currentItems.value.map(itemsMapCB) || []];
 });
 
 interface BoardGroup {
@@ -250,24 +282,43 @@ watch(
   },
 );
 
+const currentItems = ref<any[]>([]);
 
-const { result: groupItems, variables: groupItemVariables, loading: itemsLoading } = useQuery(gql`
-  query getGroupItems($groupId: [String], $page: Int!) {
+const { result: groupItems, variables: groupItemVariables, loading: itemsLoading, load, refetch } = useLazyQuery(gql`
+  query getGroupItems($groupId: [String]) {
     boards(ids: 2940773675) {
       name
       groups(ids: $groupId) {
         title
-        items(limit: 25, page: $page, newest_first: true) {
-          id
-          name
-          assets {
-            url
-            url_thumbnail
-          }
-          column_values {
-            title
-            additional_info
-            value
+        items_page (limit: 100, query_params: { order_by: { column_id: "__creation_log__", direction: desc }}) {
+          cursor
+          items {
+            id
+            name
+            assets {
+              url
+              url_thumbnail
+            }
+            column_values {
+              column {
+                title
+              }
+              type
+              value
+              ... on StatusValue {
+                label
+                label_style {
+                  color
+                }
+                text
+                value
+              }
+              ... on DateValue {
+                date
+                text
+                value
+              }
+            }
           }
         }
       }
@@ -275,37 +326,378 @@ const { result: groupItems, variables: groupItemVariables, loading: itemsLoading
   }
 `, {
   groupId: [''],
-  page: page.value,
+}, {
+  enabled: initialLoadFetchEnabled.value 
 });
 
 watch(
-  () => currentBoard.value,
+  () => groupItems.value,
   () => {
-    if (currentBoard.value && currentBoard.value.key) {
-      const id = [];
-      page.value = 1;
-      id.push(currentBoard.value.key || '');
-      groupItemVariables.value = {
-        groupId: id,
-        page: page.value,
+    currentCursor.value = groupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.cursor
+    currentItems.value = groupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+  },
+  { deep: true }
+)
+
+onMounted(async () => {
+  try {
+    await loadBoardGroups();
+  } catch (e) {
+    console.error(e);
+  } 
+})
+
+const { result: searchGroupItems, variables: searchGroupItemVariables, loading: searchItemsLoading, load: searchLoad, refetch: searchRefetch } = useLazyQuery(gql`
+  query searchItems($searchGroupId: [String], $searchItemName: CompareValue!) {
+    boards(ids: 2940773675) {
+      name
+      groups(ids: $searchGroupId) {
+        title
+        items_page (limit: 100, query_params: { order_by: { column_id: "__creation_log__", direction: desc }, rules: [{ column_id: "name", compare_value: $searchItemName, operator: any_of }]}) {
+          cursor
+          items {
+            id
+            name
+            assets {
+              url
+              url_thumbnail
+            }
+            column_values {
+              column {
+                title
+              }
+              type
+              value
+              ... on StatusValue {
+                label
+                label_style {
+                  color
+                }
+                text
+                value
+              }
+              ... on DateValue {
+                date
+                text
+                value
+              }
+            }
+          }
+        }
       }
     }
   }
-);
+`, {
+  searchGroupId: [''],
+  searchItemName: [""]
+}, {
+  enabled: searchItemsFetchEnabled.value 
+});
+
+const searchItem = async () => {
+  searchItemsFetchEnabled.value = true;
+  const id = [];
+  id.push(currentBoard.value.key || '');
+  const search = [];
+  search.push(searchTerm.value + "" || '');
+  searchGroupItemVariables.value = {
+    searchGroupId: id,
+    searchItemName: search
+  }
+  const result = await searchLoad(
+    gql`
+    query searchItems($searchGroupId: [String], $searchItemName: CompareValue!) {
+      boards(ids: 2940773675) {
+        name
+        groups(ids: $searchGroupId) {
+          title
+          items_page (limit: 100, query_params: { order_by: { column_id: "__creation_log__", direction: desc }, rules: [{ column_id: "name", compare_value: $searchItemName, operator: any_of }]}) {
+            cursor
+            items {
+              id
+              name
+              assets {
+                url
+                url_thumbnail
+              }
+              column_values {
+                column {
+                  title
+                }
+                type
+                value
+                ... on StatusValue {
+                  label
+                  label_style {
+                    color
+                  }
+                  text
+                  value
+                }
+                ... on DateValue {
+                  date
+                  text
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `, {
+    searchGroupId: id,
+    searchItemName: search,
+  }, {
+    enabled: searchItemsFetchEnabled.value 
+  });
+  
+  currentItems.value = searchGroupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+  currentCursor.value = searchGroupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.cursor || null;
+  searchItemsFetchEnabled.value = false;
+}
 
 watch(
-  () => page.value,
+  () => searchGroupItems.value,
   () => {
-    if (page.value) {
-      const id = [];
-      id.push(currentBoard.value.key || '');
-      groupItemVariables.value = {
-        groupId: id,
-        page: page.value,
+    currentItems.value = searchGroupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+    currentCursor.value = searchGroupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.cursor || null;
+  },
+  { deep: true }
+)
+
+
+
+const { load: paginationLoad, refetch: paginationRefetch, result: newGroupItems, variables: newItemsVariables, loading: newItemsLoading } = useLazyQuery(gql`
+  query getNextItems($cursor: String!) {
+      next_items_page (limit: 100, cursor: $cursor) {
+        cursor
+        items {
+          id
+          name
+          assets {
+            url
+            url_thumbnail
+          }
+          column_values {
+            column {
+              title
+            }
+            type
+            value
+            ... on StatusValue {
+              label
+              label_style {
+                color
+              }
+              text
+              value
+            }
+            ... on DateValue {
+              date
+              text
+              value
+            }
+          }
+        }
+      }
+    }
+`, {
+  cursor: currentCursor.value
+}, { 
+  enabled: newItemsFetchEnabled.value 
+});
+
+const loadMore = async () => {
+  newItemsFetchEnabled.value = true;
+  const result = await paginationLoad(
+  gql`
+  query getNextItems($cursor: String!) {
+      next_items_page (limit: 100, cursor: $cursor) {
+        cursor
+        items {
+          id
+          name
+          assets {
+            url
+            url_thumbnail
+          }
+          column_values {
+            column {
+              title
+            }
+            type
+            value
+            ... on StatusValue {
+              label
+              label_style {
+                color
+              }
+              text
+              value
+            }
+            ... on DateValue {
+              date
+              text
+              value
+            }
+          }
+        }
+      }
+    }
+  `, {
+    cursor: currentCursor.value
+  }, { 
+    enabled: newItemsFetchEnabled.value 
+  });
+  newItemsVariables.value = {
+    cursor: currentCursor.value
+  }
+}
+
+// const { result: groupItems, variables: groupItemVariables, loading: itemsLoading } = useQuery(gql`
+//   query getGroupItems($groupId: [String], $page: Int!) {
+//     boards(ids: 2940773675) {
+//       name
+//       groups(ids: $groupId) {
+//         title
+//         items(limit: 25, page: $page, newest_first: true) {
+//           id
+//           name
+//           assets {
+//             url
+//             url_thumbnail
+//           }
+//           column_values {
+//             title
+//             additional_info
+//             value
+//           }
+//         }
+//       }
+//     }
+//   }
+// `, {
+//   groupId: [''],
+//   page: page.value,
+// });
+
+watch(
+  () => newItemsLoading.value,
+  () => {
+    itemsLoading.value = newItemsLoading.value;
+  },
+)
+
+watch(
+  () => newGroupItems.value,
+  () => {
+    // currentCursor.value = newGroupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.cursor;
+    currentCursor.value = newGroupItems.value?.next_items_page?.cursor;
+    currentItems.value = [
+      ...currentItems.value,
+      ...newGroupItems.value?.next_items_page?.items || []
+    ]
+  },
+  { deep: true }
+)
+
+const initialLoad = async() => {
+  initialLoadFetchEnabled.value = true;
+  const id = [];
+  page.value = 1;
+  id.push(currentBoard.value.key || '');
+  groupItemVariables.value = {
+    groupId: id,
+  }
+  await load(
+    gql`
+    query getGroupItems($groupId: [String]) {
+      boards(ids: 2940773675) {
+        name
+        groups(ids: $groupId) {
+          title
+          items_page (limit: 100, query_params: { order_by: { column_id: "__creation_log__", direction: desc }}) {
+            cursor
+            items {
+              id
+              name
+              assets {
+                url
+                url_thumbnail
+              }
+              column_values {
+                column {
+                  title
+                }
+                type
+                value
+                ... on StatusValue {
+                  label
+                  label_style {
+                    color
+                  }
+                  text
+                  value
+                }
+                ... on DateValue {
+                  date
+                  text
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `, {
+    groupId: id,
+  }, {
+    enabled: initialLoadFetchEnabled.value 
+  });
+  initialLoadFetchEnabled.value = false;
+}
+
+watch(
+  () => currentBoard.value,
+  async () => {
+    if (!searchItemsFetchEnabled.value) {
+      if (currentBoard.value && currentBoard.value.key) {
+        await initialLoad();
+      }
+    } 
+  }
+);
+
+const showAllClicked = ref(false);
+
+const showAll = () => {
+  showAllClicked.value = !showAllClicked.value;
+}
+
+watch(
+  () => showAllClicked.value,
+  async () => {
+    if (!searchItemsFetchEnabled.value) {
+      if (currentBoard.value && currentBoard.value.key) {
+        initialLoadFetchEnabled.value = true;
+        const id = [];
+        page.value = 1;
+        id.push(currentBoard.value.key || '');
+        groupItemVariables.value = {
+          groupId: id,
+        }
+        await refetch({ groupId: id });
+        initialLoadFetchEnabled.value = false;
+        searchTerm.value = null;
       }
     }
   }
 )
+
+
+
 </script>
 
 <style scoped>
