@@ -212,8 +212,7 @@ import Tag from 'primevue/tag';
 import Menu from 'primevue/menu';
 import Galleria from 'primevue/galleria';
 import FileUpload from 'primevue/fileupload';
-import { useLazyQuery, useMutation, useQuery, provideApolloClient } from '@vue/apollo-composable';
-import { newMondayFileApolloClient, mondayFileApolloClient } from '@/graphql'; 
+import { useLazyQuery } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputText from 'primevue/inputtext';
@@ -222,7 +221,6 @@ import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import axios from 'axios';
 import Badge from 'primevue/badge';
-import { promises } from 'dns';
 
 const queryParams = computed(() => {
   return new URLSearchParams({
