@@ -56,7 +56,7 @@
       <Column field="name" header="PO Number" style="min-width: 9rem" frozen class="font-semibold"></Column>
       <Column :exportable="false" style="min-width: 6rem">
         <template #body="slotProps">
-          <Button icon="pi pi-camera" outlined rounded class=""></Button>
+          <Button icon="pi pi-camera" outlined rounded class="" @click="addImagesToItem(slotProps.data)"></Button>
         </template>
       </Column>
       <Column header="Type" style="min-width: 12rem" class="text-center font-semibold">
@@ -140,6 +140,63 @@
         </Galleria>
       <!-- </div>
     </Dialog> -->
+    <Dialog v-model:visible="addImagesDialog" :style="{ width: '50rem', maxHeight: '85vh' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }" header="Add Images" modal>
+      <label class="text-xl mb-4"><b>PO Number: </b>{{ itemToEdit.name }}</label>
+      <div class="flex flex-wrap gap-4 mt-10">
+        <template v-for="file in itemToEdit.files" :key="file.public_url">
+            <img :src="file.public_url" alt="product-img" title="product-img" style="display: block;" class="lg:max-h-[200px] mb-10" />
+        </template>
+      </div>
+      <Toast />
+      <FileUpload name="demo[]" url="./upload.php" @upload="onTemplatedUpload()" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
+            <template #header="{ chooseCallback, clearCallback, files }">
+                <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
+                    <div class="flex gap-2">
+                        <Button @click="chooseCallback()" icon="pi pi-camera" rounded outlined></Button>
+                        <Button @click="clearCallback()" icon="pi pi-times" rounded outlined severity="danger" :disabled="!files || files.length === 0"></Button>
+                    </div>
+                </div>
+            </template>
+            <template #content="{ files, uploadedFiles, removeUploadedFileCallback, removeFileCallback }">
+                <div v-if="files.length > 0">
+                    <h5>Pending</h5>
+                    <div class="sm:p-5">
+                        <div v-for="(file, index) of files" :key="file.name + file.type + file.size" class="w-full m-0 px-6 flex border-1 items-center gap-3 mb-4">
+                            <div>
+                                <img role="presentation" :alt="file.name" :src="(file as any).objectURL" width="100" height="50" class="shadow-2" />
+                            </div>
+                            <span class="font-semibold flex-grow">{{ file.name }}</span>
+                            <div>{{ formatSize(file.size) }}</div>
+                            <!-- <Badge value="Pending" severity="warning" /> -->
+                            <Button icon="pi pi-times" @click="onRemoveTemplatingFile(file, removeFileCallback, index)" outlined rounded  severity="danger" />
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="uploadedFiles.length > 0">
+                    <h5>Completed</h5>
+                    <div class="flex flex-wrap p-0 sm:p-5 gap-5">
+                        <div v-for="(file, index) of uploadedFiles" :key="file.name + file.type + file.size" class="card m-0 px-6 flex flex-column border-1 surface-border align-items-center gap-3">
+                            <div>
+                                <img role="presentation" :alt="file.name" :src="(file as any).objectURL" width="100" height="50" class="shadow-2" />
+                            </div>
+                            <span class="font-semibold">{{ file.name }}</span>
+                            <div>{{ formatSize(file.size) }}</div>
+                            <Badge value="Completed" class="mt-3" severity="success" />
+                            <Button icon="pi pi-times" @click="removeUploadedFileCallback(index)" outlined rounded  severity="danger" />
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <template #empty>
+                <div class="flex items-center justify-center flex-col">
+                    <i class="pi pi-cloud-upload border-2 border-circle p-5 text-8xl text-400 border-400" />
+                    <p class="mt-4 mb-0">Drag and drop files to here to upload.</p>
+                </div>
+            </template>
+        </FileUpload>
+        <Button class="mt-8" :disabled="files.length <= 0" @click.prevent="uploadFiles()">Save</Button>
+    </Dialog>
   </div>
 </template>
 
@@ -155,11 +212,17 @@ import Tag from 'primevue/tag';
 import Menu from 'primevue/menu';
 import Galleria from 'primevue/galleria';
 import FileUpload from 'primevue/fileupload';
-import { useLazyQuery, useQuery } from '@vue/apollo-composable';
+import { useLazyQuery, useMutation, useQuery, provideApolloClient } from '@vue/apollo-composable';
+import { newMondayFileApolloClient, mondayFileApolloClient } from '@/graphql'; 
 import gql from 'graphql-tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
+import Toast from 'primevue/toast';
+import { useToast } from "primevue/usetoast";
+import axios from 'axios';
+import Badge from 'primevue/badge';
+import { promises } from 'dns';
 
 const queryParams = computed(() => {
   return new URLSearchParams({
@@ -177,6 +240,15 @@ const getKeyFromString = (data: any, key: string) => {
     return keyValue?.[key] || null;
   }
   return null;
+}
+
+const itemToEdit = ref();
+const addImagesDialog = ref(false);
+
+const addImagesToItem = (item: any) => {
+  itemToEdit.value = {...item};
+  console.log(itemToEdit.value);
+  addImagesDialog.value = true;
 }
 
 const selectCurrentItem = (data: any) => {
@@ -703,8 +775,73 @@ watch(
   }
 )
 
+const toast = useToast();
+const totalSize = ref(0);
+const totalSizePercent = ref(0);
+const files = ref([]);
 
+const onTemplatedUpload = () => {
+    toast.add({ severity: "info", summary: "Success", detail: "File Uploaded", life: 3000 });
+};
 
+const formatSize = (bytes: any) => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
+
+const onSelectedFiles = (event: any) => {
+    files.value = event.files;
+    files.value.forEach((file: File) => {
+        totalSize.value += parseInt(formatSize(file.size));
+    });
+};
+
+const onRemoveTemplatingFile = (file: File, removeFileCallback: Function, index: any) => {
+    removeFileCallback(index);
+    totalSize.value -= parseInt(formatSize(file.size));
+    totalSizePercent.value = totalSize.value / 10;
+};
+
+const uploadFile = async ()  => {
+  const promises: any = [];
+  files.value.forEach(async (file) => {
+    const formData = new FormData();
+    formData.append('map', JSON.stringify({ "image": "variables.file" }));
+    formData.append('variables', JSON.stringify({ "itemId": +itemToEdit.value.id }));
+    formData.append('file', file);
+    const result = axios({
+      method: 'post',
+      url: `${import.meta.env.VITE_API_URL}/api/upload-file` || 'http://54.184.109.0/api/upload-file',
+      data: formData,
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    promises.push(result);
+  });
+  try {
+    const results = await Promise.allSettled(promises);
+    toast.add({ severity: "info", summary: "Success", detail: "File Uploaded", life: 3000 });
+    console.log(results);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const uploadFiles = async () => {
+  await uploadFile();
+  initialLoadFetchEnabled.value = true;
+  const id = [];
+  page.value = 1;
+  id.push(currentBoard.value.key || '');
+  groupItemVariables.value = {
+    groupId: id,
+  }
+  await refetch({ groupId: id });
+  initialLoadFetchEnabled.value = false;
+  searchTerm.value = null;
+}
 </script>
 
 <style scoped>
