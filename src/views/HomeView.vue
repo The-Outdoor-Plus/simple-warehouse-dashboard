@@ -140,15 +140,16 @@
         </Galleria>
       <!-- </div>
     </Dialog> -->
-    <Dialog v-model:visible="addImagesDialog" :style="{ width: '50rem', maxHeight: '85vh' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }" header="Add Images" modal>
-      <label class="text-xl mb-4"><b>PO Number: </b>{{ itemToEdit.name }}</label>
+    <Dialog v-model:visible="addImagesDialog" :style="{ width: '75vw', maxHeight: '85vh' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }" header="Add Images" modal>
+      <label class="text-xl mb-4"><b>PO Number: </b>{{ itemToEdit.name }}</label><br><br>
+      <label class="text-xl mb-4"><b>Type: </b>{{ itemToEdit.type.label }}</label>
       <div class="flex flex-wrap gap-4 mt-10">
         <template v-for="file in itemToEdit.files" :key="file.public_url">
             <img :src="file.public_url" alt="product-img" title="product-img" style="display: block;" class="lg:max-h-[200px] mb-10" />
         </template>
       </div>
       <Toast />
-      <FileUpload name="demo[]" url="./upload.php" @upload="onTemplatedUpload()" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
+      <FileUpload ref="fileupload" name="demo[]" url="./upload.php" @upload="onTemplatedUpload()" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
             <template #header="{ chooseCallback, clearCallback, files }">
                 <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
                     <div class="flex gap-2">
@@ -195,7 +196,10 @@
                 </div>
             </template>
         </FileUpload>
-        <Button class="mt-8" :disabled="files.length <= 0" @click.prevent="uploadFiles()">Save</Button>
+        <div class="w-full flex justify-center items-center mt-4">
+          <ProgressSpinner v-show="newFilesUploading"></ProgressSpinner>
+        </div>
+        <Button class="mt-8" :disabled="newFilesUploading" @click.prevent="uploadFiles()">Save</Button>
     </Dialog>
   </div>
 </template>
@@ -244,7 +248,7 @@ const itemToEdit = ref();
 const addImagesDialog = ref(false);
 
 const addImagesToItem = (item: any) => {
-  itemToEdit.value = {...item};
+  itemToEdit.value = item;
   console.log(itemToEdit.value);
   addImagesDialog.value = true;
 }
@@ -413,6 +417,8 @@ watch(
 
 onMounted(async () => {
   try {
+    // @ts-ignore
+    fileupload.value?.focus();
     await loadBoardGroups();
   } catch (e) {
     console.error(e);
@@ -777,6 +783,8 @@ const toast = useToast();
 const totalSize = ref(0);
 const totalSizePercent = ref(0);
 const files = ref([]);
+const newFilesUploading = ref(false);
+const fileupload = ref<any>(null);
 
 const onTemplatedUpload = () => {
     toast.add({ severity: "info", summary: "Success", detail: "File Uploaded", life: 3000 });
@@ -820,25 +828,42 @@ const uploadFile = async ()  => {
   });
   try {
     const results = await Promise.allSettled(promises);
-    toast.add({ severity: "info", summary: "Success", detail: "File Uploaded", life: 3000 });
+    toast.add({ severity: "success", summary: "Success", detail: "Files Uploaded", life: 3000 });
     console.log(results);
   } catch (e) {
     console.error(e);
+    toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
   }
 }
 
+
 const uploadFiles = async () => {
-  await uploadFile();
-  initialLoadFetchEnabled.value = true;
-  const id = [];
-  page.value = 1;
-  id.push(currentBoard.value.key || '');
-  groupItemVariables.value = {
-    groupId: id,
-  }
-  await refetch({ groupId: id });
-  initialLoadFetchEnabled.value = false;
-  searchTerm.value = null;
+  try {
+    newFilesUploading.value = true;
+    await uploadFile();
+    initialLoadFetchEnabled.value = true;
+    const id = [];
+    page.value = 1;
+    id.push(currentBoard.value.key || '');
+    groupItemVariables.value = {
+      groupId: id,
+    }
+    await refetch({ groupId: id });
+    initialLoadFetchEnabled.value = false;
+    searchTerm.value = null;
+    const currentItemFound = items.value.find((item: any) => item.id === itemToEdit.value.id);
+    files.value = [];
+    fileupload.value.clear();
+    fileupload.value.uploadedFileCount = 0;
+    if (currentItemFound && currentItemFound.id) {
+      itemToEdit.value = currentItemFound;
+    }
+  } catch (e) {
+    console.error(e);
+    toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
+  } finally {
+    newFilesUploading.value = false;
+  } 
 }
 </script>
 
