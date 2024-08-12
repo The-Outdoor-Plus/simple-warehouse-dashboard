@@ -12,11 +12,24 @@
       <Button 
         type="button"
         icon="pi pi-filter" 
-        :label="currentBoard?.label" 
+        :label="`Shipping Type: ${currentShippingType?.label}`" 
+        @click="toggleType" 
+        aria-haspopup="true" 
+        aria-controls="type_menu" 
+        class="mt-5 -mb-2 ml-auto" 
+        plain 
+        text 
+        raised 
+      />
+      <Menu ref="typemenu" id="type_menu" :model="shippingTypes" :popup="true" />
+      <Button 
+        type="button"
+        icon="pi pi-filter" 
+        :label="`Month: ${currentBoard?.label}`" 
         @click="toggle" 
         aria-haspopup="true" 
         aria-controls="overlay_menu" 
-        class="mt-5 -mb-2 ml-auto" 
+        class="mt-5 -mb-2 ml-10" 
         plain 
         text 
         raised 
@@ -115,7 +128,7 @@
 
 
     <div class="w-full flex justify-center items-center mt-4">
-      <ProgressSpinner v-show="itemsLoading || newItemsLoading"></ProgressSpinner>
+      <ProgressSpinner v-show="itemsLoading || newItemsLoading || itemsTypeLoading"></ProgressSpinner>
     </div>
     <div class="w-full flex justify-center items-center mt-4">
       <Button text raised :disabled="!hasCursor" @click="loadMore()">
@@ -294,10 +307,15 @@ const parseDate = (dateString: string) => {
 }
 
 const menu = ref();
+const typemenu = ref();
 
 const toggle = (event: any) => {
-    menu.value.toggle(event);
+  menu.value.toggle(event);
 };
+
+const toggleType = (event: any) => {
+  typemenu.value.toggle(event);
+}
 
 const dt = ref();
 
@@ -318,9 +336,98 @@ const boardGroups = computed(() => {
     label: group.title,
     command: ({ item }: any) => {
       currentBoard.value = item;
+      currentShippingType.value = {key: 'all', label: 'All'};
     }
   })) || [];
 });
+
+interface ShippingType {
+  key?: string | number;
+  label?: string;
+}
+
+const currentShippingType = ref<ShippingType>({ key: 'all', label: 'All'})
+
+const shippingTypes = ref<any>([
+  {key: 'all', label: 'All', command: ({ item }: any) => { currentShippingType.value = item }},
+  {key: 0, label: 'Will Call', command: ({ item }: any) => { currentShippingType.value = item }},
+  {key: 1, label: 'FedEx / UPS', command: ({ item }: any) => { currentShippingType.value = item }},
+  {key: 2, label: 'LTL', command: ({ item }: any) => { currentShippingType.value = item }},
+]);
+
+watch(
+  () => currentShippingType.value,
+  async () => {
+    try {
+      shippingTypeFetchEnabled.value = true;
+      if (currentShippingType.value && currentShippingType.value.key === 'all') {
+        await refetch();
+      } else {
+        const id = [];
+        page.value = 1;
+        id.push(currentBoard.value.key || '');
+        groupItemTypeVariables.value = {
+          groupId: id,
+          shippingType: [+(currentShippingType.value?.key || 0)]
+        }
+        await typeLoad(
+          gql`
+          query getGroupItems($groupId: [String], $shippingType: CompareValue!) {
+            boards(ids: 2940773675) {
+              name
+              groups(ids: $groupId) {
+                title
+                items_page (limit: 100, query_params: { order_by: { column_id: "__creation_log__", direction: desc }, rules: [{ column_id: "status6", compare_value: $shippingType, operator: any_of }], operator: and}) {
+                  cursor
+                  items {
+                    id
+                    name
+                    assets {
+                      url
+                      url_thumbnail
+                      public_url
+                    }
+                    column_values {
+                      column {
+                        id
+                        title
+                      }
+                      type
+                      value
+                      ... on StatusValue {
+                        label
+                        label_style {
+                          color
+                        }
+                        text
+                        value
+                      }
+                      ... on DateValue {
+                        date
+                        text
+                        value
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `, {
+          groupId: id,
+          shippingType: [+(currentShippingType.value?.key || 0)],
+        }, {
+          enabled: shippingTypeFetchEnabled.value 
+        });
+      }
+    } catch (e) { 
+      console.error(e);
+    } finally {
+      shippingTypeFetchEnabled.value = false;
+    }
+  },
+  { deep: true }
+)
 
 const itemsMapCB = (item: any) => ({
   id: item.id,
@@ -377,6 +484,7 @@ const { result: groupItems, variables: groupItemVariables, loading: itemsLoading
             }
             column_values {
               column {
+                id
                 title
               }
               type
@@ -405,6 +513,66 @@ const { result: groupItems, variables: groupItemVariables, loading: itemsLoading
 }, {
   enabled: initialLoadFetchEnabled.value 
 });
+
+const shippingTypeFetchEnabled = ref(false);
+
+const { result: groupItemsType, variables: groupItemTypeVariables, loading: itemsTypeLoading, load: typeLoad, refetch: typeRefetch } = useLazyQuery(gql`
+  query getGroupItems($groupId: [String], $shippingType: CompareValue!) {
+    boards(ids: 2940773675) {
+      name
+      groups(ids: $groupId) {
+        title
+        items_page (limit: 100, query_params: { order_by: { column_id: "__creation_log__", direction: desc }, rules: [{ column_id: "status6", compare_value: $shippingType, operator: any_of }], operator: and}) {
+          cursor
+          items {
+            id
+            name
+            assets {
+              url
+              url_thumbnail
+              public_url
+            }
+            column_values {
+              column {
+                id
+                title
+              }
+              type
+              value
+              ... on StatusValue {
+                label
+                label_style {
+                  color
+                }
+                text
+                value
+              }
+              ... on DateValue {
+                date
+                text
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`, {
+  groupId: [''],
+  shippingType: [0],
+}, {
+  enabled: shippingTypeFetchEnabled.value 
+});
+
+watch(
+  () => groupItemsType.value,
+  () => {
+    currentCursor.value = groupItemsType.value?.boards?.[0]?.groups?.[0]?.items_page?.cursor
+    currentItems.value = groupItemsType.value?.boards?.[0]?.groups?.[0]?.items_page?.items || [];
+  },
+  { deep: true }
+)
 
 watch(
   () => groupItems.value,
@@ -443,6 +611,7 @@ const { result: searchGroupItems, variables: searchGroupItemVariables, loading: 
             }
             column_values {
               column {
+                id
                 title
               }
               type
@@ -502,6 +671,7 @@ const searchItem = async () => {
               }
               column_values {
                 column {
+                  id
                   title
                 }
                 type
@@ -562,6 +732,7 @@ const { load: paginationLoad, refetch: paginationRefetch, result: newGroupItems,
           }
           column_values {
             column {
+              id
               title
             }
             type
@@ -606,6 +777,7 @@ const loadMore = async () => {
           }
           column_values {
             column {
+              id
               title
             }
             type
@@ -637,33 +809,6 @@ const loadMore = async () => {
   }
 }
 
-// const { result: groupItems, variables: groupItemVariables, loading: itemsLoading } = useQuery(gql`
-//   query getGroupItems($groupId: [String], $page: Int!) {
-//     boards(ids: 2940773675) {
-//       name
-//       groups(ids: $groupId) {
-//         title
-//         items(limit: 25, page: $page, newest_first: true) {
-//           id
-//           name
-//           assets {
-//             url
-//             url_thumbnail
-//           }
-//           column_values {
-//             title
-//             additional_info
-//             value
-//           }
-//         }
-//       }
-//     }
-//   }
-// `, {
-//   groupId: [''],
-//   page: page.value,
-// });
-
 watch(
   () => newItemsLoading.value,
   () => {
@@ -674,7 +819,6 @@ watch(
 watch(
   () => newGroupItems.value,
   () => {
-    // currentCursor.value = newGroupItems.value?.boards?.[0]?.groups?.[0]?.items_page?.cursor;
     currentCursor.value = newGroupItems.value?.next_items_page?.cursor;
     currentItems.value = [
       ...currentItems.value,
@@ -711,6 +855,7 @@ const initialLoad = async() => {
               }
               column_values {
                 column {
+                  id
                   title
                 }
                 type
