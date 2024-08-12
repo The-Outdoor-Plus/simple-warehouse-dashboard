@@ -965,7 +965,7 @@ const uploadFile = async ()  => {
     formData.append('file', file);
     const result = axios({
       method: 'post',
-      url: `${import.meta.env.VITE_API_URL}/api/upload-file` || 'http://54.184.109.0/api/upload-file',
+      url: `${import.meta.env.VITE_API_URL}/api/upload-file`,
       data: formData,
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -973,8 +973,17 @@ const uploadFile = async ()  => {
   });
   try {
     const results = await Promise.allSettled(promises);
-    toast.add({ severity: "success", summary: "Success", detail: "Files Uploaded", life: 3000 });
-    console.log(results);
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        if (result.value?.status === 200) {
+          toast.add({ severity: "success", summary: "Success", detail: "Files Uploaded", life: 3000 });
+        } else {
+          toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
+        }
+      } else {
+        toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
+      }
+    });
   } catch (e) {
     console.error(e);
     toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
