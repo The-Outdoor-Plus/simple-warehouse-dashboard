@@ -1,5 +1,8 @@
 <template>
   <div class="px-6 mb-32">
+    <div class="w-full flex justify-end">
+      <Button icon="pi pi-times" severity="contrast" rounded outlined aria-label="Cancel" @click.prevent="router.push('/')" />
+    </div>
     <div class="w-full">
       <label for="ponumber" class="font-bold block mb-2"> PO Number: </label>
       <InputText v-model="poNumber" inputId="ponumber" input-class="w-full" :useGrouping="false" class="w-full"/>
@@ -19,8 +22,7 @@
       </div>
     </div>
     <div class="w-full mt-6">
-      <Toast />
-        <FileUpload name="demo[]" url="./upload.php" @upload="onTemplatedUpload()" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
+        <FileUpload ref="fileupload" name="demo[]" url="./upload.php" @upload="onTemplatedUpload()" :multiple="true" accept="image/*" :maxFileSize="300000000" @select="onSelectedFiles">
             <template #header="{ chooseCallback, clearCallback, files }">
                 <div class="flex flex-wrap justify-content-between align-items-center flex-1 gap-2">
                     <div class="flex gap-2">
@@ -67,8 +69,12 @@
                 </div>
             </template>
         </FileUpload>
-        <Button class="mt-8" :disabled="!poNumber" @click.prevent="createItem()">Create Item</Button>
+        <div class="w-full flex justify-center items-center mt-4">
+          <ProgressSpinner v-show="newFilesUploading"></ProgressSpinner>
+        </div>
+        <Button class="mt-8" :disabled="!poNumber || newFilesUploading" @click.prevent="createItem()">Create Item</Button>
     </div>
+    <Toast />
   </div>
 </template>
 <script lang="ts" setup>
@@ -76,15 +82,17 @@ import { computed, onMounted, ref } from 'vue';
 import { useToast } from "primevue/usetoast";
 import Dropdown from 'primevue/dropdown';
 import Calendar from 'primevue/calendar';
-import Toast from 'primevue/toast';
 import Badge from 'primevue/badge';
 import Button from 'primevue/button';
 import FileUpload from 'primevue/fileupload';
 import InputText from 'primevue/inputtext';
 import { useMutation } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
+import Toast from 'primevue/toast';
+import { useUserStore } from '@/store/user';
+import ProgressSpinner from 'primevue/progressspinner';
 
 const route = useRoute();
 
@@ -101,8 +109,11 @@ const typeOptions = ref([
 const readyDate = ref<any>(new Date());
 const shippingDate = ref();
 
+const userStore = useUserStore();
+const router = useRouter();
 
 const toast = useToast();
+const newFilesUploading = ref(false);
 
 const totalSize = ref(0);
 const totalSizePercent = ref(0);
@@ -110,6 +121,7 @@ const files = ref([]);
 const groupId = ref();
 const itemId = ref();
 const fileToUpload = ref();
+const fileupload = ref<any>(null);
 
 onMounted(() => {
   groupId.value = route.query?.groupId || '';
@@ -148,10 +160,12 @@ const { mutate: createItem, onDone: onCreateItemDone } = useMutation(gql`
   },
 }));
 
-onCreateItemDone((result) => {
+onCreateItemDone(async (result) => {
   console.log('Item Created', result.data);
   itemId.value = result.data.create_item.id;
-  uploadFiles();
+  toast.add({ severity: "success", summary: "Success", detail: "Item Created Successfully", life: 3000 });
+  await uploadFiles();
+  router.replace('/');
 });
 
 // const { mutate: uploadFile, onDone: onUploadFileDone } = useMutation(gql`
@@ -171,31 +185,72 @@ onCreateItemDone((result) => {
 const uploadFile = async ()  => {
   const promises: any = [];
   files.value.forEach(async (file) => {
-    const data = new FormData();
-    // data.append('query', `mutation add_file($file: File!) {add_file_to_column (item_id: ${itemId.value}, column_id:"files" file: $file) {id}}`);
-    data.append('map', JSON.stringify({ "image": "variables.file" }));
-    data.append('variables', JSON.stringify({ "itemId": +itemId.value }));
-    data.append('file', file);
+    const formData = new FormData();
+    formData.append('map', JSON.stringify({ "image": "variables.file" }));
+    formData.append('variables', JSON.stringify({ "itemId": +itemId.value }));
+    formData.append('file', file);
     const result = axios({
       method: 'post',
-      url: `${import.meta.env.VITE_API_URL}/api/upload-file` || 'https://top-warehouse-api-95rb-dev.fl0.io/api/upload-file',
-      // url: 'http://localhost:3000/api/upload-file',
-      data,
-      headers: { "Content-Type": "multipart/form-data" },
+      url: `${import.meta.env.VITE_API_URL}/api/upload-file`,
+      data: formData,
+      headers: { "Content-Type": "multipart/form-data", "Authorization": userStore.currentToken },
     });
     promises.push(result);
   });
-
   try {
     const results = await Promise.allSettled(promises);
-    console.log(results);
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        if (result.value?.status === 200) {
+          toast.add({ severity: "success", summary: "Success", detail: "Files Uploaded", life: 3000 });
+        } else {
+          toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
+        }
+      } else {
+        toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
+      }
+    });
   } catch (e) {
     console.error(e);
+    toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
   }
 }
 
+const { mutate: updateItemUploadedBy } = useMutation(gql`
+  mutation updateItemUploadedBy ($boardId: ID!, $itemId: ID, $columnId: String!, $value: String) {
+    change_simple_column_value (board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) {
+      id
+    }
+  }
+`, {
+  fetchPolicy: 'no-cache',
+})
+
 const uploadFiles = async () => {
-  await uploadFile();
+  try {
+    newFilesUploading.value = true;
+    await uploadFile();
+    try {
+      await updateItemUploadedBy({
+        boardId: 2940773675,
+        itemId: itemId.value,
+        columnId: 'text__1',
+        value: userStore.currentUserName
+      });
+    } catch (e) {
+      console.error(e);
+      toast.add({ severity: "warn", summary: "Warning", detail: "User couldn't be updated", life: 3000 });
+    }
+    
+    files.value = [];
+    fileupload.value.clear();
+    fileupload.value.uploadedFileCount = 0;
+  } catch (e) {
+    console.error(e);
+    toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
+  } finally {
+    newFilesUploading.value = false;
+  } 
 }
 
 const onRemoveTemplatingFile = (file: File, removeFileCallback: Function, index: any) => {

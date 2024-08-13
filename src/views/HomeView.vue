@@ -1,13 +1,13 @@
 <template>
   <div class="px-6 mb-32">
-    <!-- <Toolbar class="bg-white-gray-100 border-gray-300 dark:bg-gray-100 dark:border-gray-300">
+    <Toolbar class="bg-white-gray-100 border-gray-300 dark:bg-gray-100 dark:border-gray-300">
       <template #start>
 
       </template>
       <template #end>
         <Button label="New" icon="pi pi-plus" severity="success" class="mr-2 bg-green-700 border-green-700 px-10 py-0" @click="$router.push(`/new?${queryParams}`)" />
       </template>
-    </Toolbar> -->
+    </Toolbar>
     <div class="w-full flex">
       <Button 
         type="button"
@@ -301,13 +301,25 @@ const galleryResponsiveOptions = ref([
 ]);
 
 const parseDate = (dateString: string) => {
-  if (dateString) {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      // @ts-ignore
-    }).format(new Date(dateString.split('-')))
+  // if (dateString) {
+  //   return new Intl.DateTimeFormat('en-US', {
+  //     month: 'short',
+  //     day: 'numeric',
+  //     year: 'numeric',
+  //     // @ts-ignore
+  //   }).format(new Date(dateString.split('-')))
+  // }
+  const dateParts = dateString.split('-');
+  if (dateParts.length === 3) {
+    const [year, month, day] = dateParts.map(Number);
+    const date = new Date(year, month - 1, day); // month is zero-indexed in JS Date
+    if (!isNaN(date?.getTime())) {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(date);
+    }
   }
   return null;
 }
