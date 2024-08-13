@@ -1,7 +1,7 @@
 import './assets/main.css';
 
 import { createApp } from 'vue';
-import { createPinia } from 'pinia';
+import pinia from './store';
 
 import App from './App.vue';
 import './index.css';
@@ -21,10 +21,10 @@ app.provide(ApolloClients, {
   mondayFileClient: mondayFileApolloClient,
 });
 
-app.use(createPinia());
 app.use(PrimeVue, { unstyled: true, pt: Tailwind });
 app.use(ToastService);
 app.use(router);
+app.use(pinia);
 app.use(i18n);
 
 app.mount('#app');

@@ -238,6 +238,10 @@ import Toast from 'primevue/toast';
 import { useToast } from "primevue/usetoast";
 import axios from 'axios';
 import Badge from 'primevue/badge';
+import { useAuth } from '@/composables/auth';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const queryParams = computed(() => {
   return new URLSearchParams({
@@ -583,11 +587,20 @@ watch(
   { deep: true }
 )
 
+const {
+  checkToken,
+} = useAuth();
+
 onMounted(async () => {
   try {
     // @ts-ignore
-    fileupload.value?.focus();
-    await loadBoardGroups();
+    const result = await checkToken();
+    if (result === 'redirect') {
+      router.push('/login')
+    } else {
+      fileupload.value?.focus();
+      await loadBoardGroups();
+    }
   } catch (e) {
     console.error(e);
   } 
