@@ -229,7 +229,7 @@ import Tag from 'primevue/tag';
 import Menu from 'primevue/menu';
 import Galleria from 'primevue/galleria';
 import FileUpload from 'primevue/fileupload';
-import { useLazyQuery } from '@vue/apollo-composable';
+import { useLazyQuery, useMutation } from '@vue/apollo-composable';
 import gql from 'graphql-tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import InputText from 'primevue/inputtext';
@@ -240,8 +240,10 @@ import axios from 'axios';
 import Badge from 'primevue/badge';
 import { useAuth } from '@/composables/auth';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/store/user';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 const queryParams = computed(() => {
   return new URLSearchParams({
@@ -980,7 +982,7 @@ const uploadFile = async ()  => {
       method: 'post',
       url: `${import.meta.env.VITE_API_URL}/api/upload-file`,
       data: formData,
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { "Content-Type": "multipart/form-data", "Authorization": userStore.currentToken },
     });
     promises.push(result);
   });
@@ -1003,11 +1005,33 @@ const uploadFile = async ()  => {
   }
 }
 
+const { mutate: updateItemUploadedBy } = useMutation(gql`
+  mutation updateItemUploadedBy ($boardId: ID!, $itemId: ID, $columnId: String!, $value: String) {
+    change_simple_column_value (board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) {
+      id
+    }
+  }
+`, {
+  fetchPolicy: 'no-cache',
+})
+
 
 const uploadFiles = async () => {
   try {
     newFilesUploading.value = true;
     await uploadFile();
+    try {
+      await updateItemUploadedBy({
+        boardId: 2940773675,
+        itemId: itemToEdit.value.id,
+        columnId: 'text__1',
+        value: userStore.currentUserName
+      });
+    } catch (e) {
+      console.error(e);
+      toast.add({ severity: "warn", summary: "Warning", detail: "User couldn't be updated", life: 3000 });
+    }
+    
     initialLoadFetchEnabled.value = true;
     const id = [];
     page.value = 1;
