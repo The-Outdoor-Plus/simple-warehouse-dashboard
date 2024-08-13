@@ -35,7 +35,7 @@
           </form>
         </div>
       </div>
-      <div class="w-full md:w-6/12 lg:w-7/12 xl:w-8/12 2xl:w-9/12 sm:min-h-screen">
+      <div class="w-full md:w-6/12 lg:w-7/12 xl:w-8/12 2xl:w-9/12 sm:min-h-screen max-h-screen">
         <img
           class="h-full"
           cover
