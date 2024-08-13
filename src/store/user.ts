@@ -31,6 +31,7 @@ export const useUserStore = defineStore('user', {
   actions: {
     setUser(user: User) {
       this.user = user;
+      localStorage.setItem('username', user.username || '');
     },
     setSession(session: Session) {
       this.session = session;
@@ -46,6 +47,7 @@ export const useUserStore = defineStore('user', {
       this.session = null;
       this.token = null;
       localStorage.removeItem('tk');
+      localStorage.removeItem('username');
     }
   },
   getters: {
@@ -53,6 +55,9 @@ export const useUserStore = defineStore('user', {
       return {
         ...state.user,
       }
+    },
+    currentUserName: (state) => {
+      return state.user?.username || localStorage.getItem('username');
     },
     isUserAuthenticated(state) {
       return !!state.session;
