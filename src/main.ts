@@ -13,6 +13,7 @@ import ToastService from 'primevue/toastservice';
 import Tailwind from 'primevue/passthrough/tailwind';
 import { ApolloClients } from '@vue/apollo-composable';
 import { mondayApolloClient, mondayFileApolloClient } from './graphql';
+import * as Sentry from '@sentry/vue';
 
 const app = createApp(App);
 
@@ -26,5 +27,19 @@ app.use(ToastService);
 app.use(router);
 app.use(pinia);
 app.use(i18n);
+
+Sentry.init({
+  app,
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.VITE_VERCEL_ENV || 'local',
+  integrations: [
+    Sentry.browserTracingIntegration({ router }),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  tracePropagationTargets: ['localhost', import.meta.env.VITE_API_URL],
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
 
 app.mount('#app');

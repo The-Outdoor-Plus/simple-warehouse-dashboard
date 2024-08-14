@@ -93,6 +93,7 @@ import axios from 'axios';
 import Toast from 'primevue/toast';
 import { useUserStore } from '@/store/user';
 import ProgressSpinner from 'primevue/progressspinner';
+import * as Sentry from '@sentry/vue';
 
 const route = useRoute();
 
@@ -212,6 +213,7 @@ const uploadFile = async ()  => {
     });
   } catch (e) {
     console.error(e);
+    Sentry.captureException(e);
     toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
   }
 }
@@ -238,6 +240,7 @@ const uploadFiles = async () => {
         value: userStore.currentUserName
       });
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
       toast.add({ severity: "warn", summary: "Warning", detail: "User couldn't be updated", life: 3000 });
     }
@@ -246,6 +249,7 @@ const uploadFiles = async () => {
     fileupload.value.clear();
     fileupload.value.uploadedFileCount = 0;
   } catch (e) {
+    Sentry.captureException(e);
     console.error(e);
     toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
   } finally {

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import * as Sentry from '@sentry/vue';
 
 interface User {
   username?: string;
@@ -38,8 +39,16 @@ export const useUserStore = defineStore('user', {
       this.token = session.access_token;
       localStorage.setItem('tk', session.access_token);
     },
+    setSentryUser(user: User) {
+      Sentry.setUser({
+        id: user.username,
+        email: user.username,
+        username: user.username,
+      })
+    },
     successfullLogin(user: User, session: any) {
       this.setUser(user);
+      this.setSentryUser(user);
       this.setSession(session);
     },
     logOut() {

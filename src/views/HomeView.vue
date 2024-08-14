@@ -241,6 +241,7 @@ import Badge from 'primevue/badge';
 import { useAuth } from '@/composables/auth';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
+import * as Sentry from '@sentry/vue';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -440,6 +441,7 @@ watch(
       }
     } catch (e) { 
       console.error(e);
+      Sentry.captureException(e);
     } finally {
       shippingTypeFetchEnabled.value = false;
     }
@@ -616,6 +618,7 @@ onMounted(async () => {
       await loadBoardGroups();
     }
   } catch (e) {
+    Sentry.captureException(e);
     console.error(e);
   } 
 })
@@ -1012,6 +1015,7 @@ const uploadFile = async ()  => {
       }
     });
   } catch (e) {
+    Sentry.captureException(e);
     console.error(e);
     toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
   }
@@ -1040,6 +1044,7 @@ const uploadFiles = async () => {
         value: userStore.currentUserName
       });
     } catch (e) {
+      Sentry.captureException(e);
       console.error(e);
       toast.add({ severity: "warn", summary: "Warning", detail: "User couldn't be updated", life: 3000 });
     }
@@ -1062,6 +1067,7 @@ const uploadFiles = async () => {
       itemToEdit.value = currentItemFound;
     }
   } catch (e) {
+    Sentry.captureException(e);
     console.error(e);
     toast.add({ severity: "error", summary: "Error", detail: "Error uploading files", life: 3000 });
   } finally {

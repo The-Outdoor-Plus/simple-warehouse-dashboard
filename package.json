@@ -14,6 +14,8 @@
   "dependencies": {
     "@apollo/client": "^3.8.1",
     "@intlify/unplugin-vue-i18n": "^0.12.3",
+    "@sentry/vite-plugin": "^2.22.1",
+    "@sentry/vue": "^8.25.0",
     "@vue/apollo-composable": "^4.0.0-beta.8",
     "apollo-upload-client": "^18.0.1",
     "axios": "^1.5.0",

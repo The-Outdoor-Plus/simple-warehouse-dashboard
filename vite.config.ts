@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import { fileURLToPath, URL } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { defineConfig } from 'vite';
@@ -10,6 +11,10 @@ export default defineConfig({
     vue(),
     VueI18nPlugin({
       include: resolve(dirname(fileURLToPath(import.meta.url)), './src/i18n/locales/**'),
+    }),
+    sentryVitePlugin({
+      org: "the-outdoor-plus",
+      project: "simple-shipping-warehouse-dashboard",
     })
   ],
   resolve: {
